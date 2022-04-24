@@ -37,6 +37,7 @@ class Generator:
     width: int
     height: int
     line_width: int
+    body_tension: int
 
     # properties
 
@@ -66,27 +67,43 @@ class Generator:
 
     def get_body(self, palette: Palette, size: int) -> svg.Path:
         points = list(self.iter_body_points(size))
-        first_point = points[0]
-        points.append(first_point)  # close the path
-        path_data: list[svg.PathData] = [svg.MoveTo(*first_point)]
-        for x, y in points:
-            path_data.append(svg.LineTo(x, y))
         return svg.Path(
-            d=path_data,
+            d=list(self.spline(points)),
             fill="none",
             stroke=palette.dark,
             stroke_width=self.line_width,
         )
 
-    def iter_body_points(self, size: int) -> Iterator[tuple[int, int]]:
+    def iter_body_points(self, size: int) -> Iterator[tuple[float, float]]:
         n_points = randint(3, 12)   # how many points do we want?
         angle_step = math.pi * 2 / n_points  # step used to place each point at equal distances
-        for point_number in range(0, n_points):
+        for point_number in range(1, n_points + 1):
             pull = random_float(.75, 1)
             angle = point_number * angle_step
             x = self.cx + math.cos(angle) * size * pull
             y = self.cx + math.sin(angle) * size * pull
-            yield (round(x), round(y))
+            yield (x, y)
+
+    def spline(self, points: list[tuple[float, float]]) -> Iterator[svg.PathData]:
+        """
+        https://github.com/georgedoescode/splinejs
+        """
+        yield svg.MoveTo(*points[-1])
+        first_point = points[0]
+        second_point = points[1]
+        points.insert(0, points[-1])
+        points.insert(0, points[-2])
+        points.append(first_point)
+        points.append(second_point)
+        for (x0, y0), (x1, y1), (x2, y2), (x3, y3) in zip(points, points[1:], points[2:], points[3:]):
+            yield svg.CubicBezier(
+                x1=x1 + (x2 - x0) / 6 * self.body_tension,
+                y1=y1 + (y2 - y0) / 6 * self.body_tension,
+                x2=x2 - (x3 - x1) / 6 * self.body_tension,
+                y2=y2 - (y3 - y1) / 6 * self.body_tension,
+                x=x2,
+                y=y2,
+            )
 
     def iter_eyes(self, palette: Palette, max_size: int):
         half_size = max_size // 2
@@ -129,11 +146,12 @@ class Generator:
         )
 
 
-def main():
+def main() -> None:
     parser = ArgumentParser()
     parser.add_argument('--width', type=int, default=200)
     parser.add_argument('--height', type=int, default=200)
     parser.add_argument('--line-width', type=int, default=2)
+    parser.add_argument('--body-tension', type=float, default=1)
     parser.add_argument('--seed', type=int)
     args = parser.parse_args()
     if args.seed:
@@ -142,6 +160,7 @@ def main():
         width=args.width,
         height=args.height,
         line_width=args.line_width,
+        body_tension=args.body_tension,
     )
     print(generator.generate())
 
