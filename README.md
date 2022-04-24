@@ -7,7 +7,7 @@ The repository contains some of my generative art. All art in the repository is 
 ```bash
 git clone https://github.com/orsinium-labs/generative-art.git
 cd generative-art
-python3 -m pip isntall svg.py
+python3.9 -m pip isntall svg.py
 ```
 
 ## blobs.py
