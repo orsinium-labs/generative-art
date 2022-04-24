@@ -44,8 +44,6 @@ class Generator:
     line_width: int
     body_tension: int
 
-    # properties
-
     @property
     def cx(self) -> int:
         return self.width // 2
@@ -54,13 +52,30 @@ class Generator:
     def cy(self) -> int:
         return self.height // 2
 
-    # methods
+    def generate_grid(self, size_x: int, size_y: int) -> svg.SVG:
+        if size_x == 1 and size_y == 1:
+            return self.generate()
+        elements: list[svg.Element] = []
+        for ix in range(size_x):
+            x = self.width * ix
+            for iy in range(size_y):
+                y = self.width * iy
+                elements.append(svg.G(
+                    transform=[svg.Translate(x, y)],
+                    elements=[self.generate()],
+                ))
+        return svg.SVG(
+            width=self.width * size_x,
+            height=self.height * size_y,
+            xmlns='http://www.w3.org/2000/svg',
+            elements=elements,
+        )
 
     def generate(self) -> svg.SVG:
         return svg.SVG(
             width=self.width,
             height=self.height,
-            xmlns="http://www.w3.org/2000/svg",
+            xmlns='http://www.w3.org/2000/svg',
             elements=list(self.iter_elements()),
         )
 
@@ -74,7 +89,7 @@ class Generator:
         points = list(self.iter_body_points(size))
         return svg.Path(
             d=list(self.spline(points)),
-            fill="none",
+            fill=palette.light,
             stroke=palette.dark,
             stroke_width=self.line_width,
         )
@@ -112,7 +127,7 @@ class Generator:
 
     def iter_eyes(self, palette: Palette, max_size: int):
         half_size = max_size // 2
-        size = randint(half_size, max_size)
+        size = randint(half_size, max_size - 1)
         n_eyes = choice([1, 2, 2, 2, 3, 4])
         if n_eyes == 1:
             yield self.get_eye(palette, self.cx, self.cy, size)
@@ -138,7 +153,7 @@ class Generator:
                 svg.Circle(
                     cx=0, cy=0, r=radius,
                     stroke=palette.dark,
-                    fill='none',
+                    fill='white',
                     stroke_width=self.line_width,
                 ),
                 # pupil
@@ -158,6 +173,8 @@ def main() -> None:
     parser.add_argument('--line-width', type=int, default=2)
     parser.add_argument('--body-tension', type=float, default=1)
     parser.add_argument('--seed', type=int)
+    parser.add_argument('--grid-x', type=int, default=1)
+    parser.add_argument('--grid-y', type=int, default=1)
     args = parser.parse_args()
     if args.seed:
         seed(args.seed)
@@ -167,8 +184,8 @@ def main() -> None:
         line_width=args.line_width,
         body_tension=args.body_tension,
     )
-    print(generator.generate())
+    print(generator.generate_grid(args.grid_x, args.grid_y))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
