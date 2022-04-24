@@ -1,0 +1,15 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GREETING: Hello, World!
+
+tasks:
+  generate:
+    sources:
+      - generate.py
+    generates:
+      - blob.svg
+    cmds:
+      - python3.9 generate.py > blob.svg
