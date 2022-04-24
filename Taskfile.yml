@@ -3,10 +3,10 @@
 version: '3'
 
 tasks:
-  generate:
+  blobs:
     sources:
-      - generate.py
+      - blobs.py
     generates:
-      - blob.svg
+      - blobs.svg
     cmds:
-      - python3.9 generate.py {{.CLI_ARGS}} > blob.svg
+      - python3.9 blobs.py {{.CLI_ARGS}} > blobs.svg

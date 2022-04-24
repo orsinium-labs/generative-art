@@ -1,5 +1,4 @@
 /.task
 .*_cache/
 __pycache__/
-/blob.svg
 *.js
