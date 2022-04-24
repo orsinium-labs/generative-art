@@ -2,9 +2,14 @@ from __future__ import annotations
 from argparse import ArgumentParser
 import math
 from random import choice, randint, random, seed
-from typing import Iterator
+from typing import Iterator, NamedTuple
 from dataclasses import dataclass
 import svg
+
+
+class Point(NamedTuple):
+    x: float
+    y: float
 
 
 def random_float(start: float, end: float) -> float:
@@ -74,7 +79,7 @@ class Generator:
             stroke_width=self.line_width,
         )
 
-    def iter_body_points(self, size: int) -> Iterator[tuple[float, float]]:
+    def iter_body_points(self, size: int) -> Iterator[Point]:
         n_points = randint(3, 12)   # how many points do we want?
         angle_step = math.pi * 2 / n_points  # step used to place each point at equal distances
         for point_number in range(1, n_points + 1):
@@ -82,9 +87,9 @@ class Generator:
             angle = point_number * angle_step
             x = self.cx + math.cos(angle) * size * pull
             y = self.cx + math.sin(angle) * size * pull
-            yield (x, y)
+            yield Point(x, y)
 
-    def spline(self, points: list[tuple[float, float]]) -> Iterator[svg.PathData]:
+    def spline(self, points: list[Point]) -> Iterator[svg.PathData]:
         """
         https://github.com/georgedoescode/splinejs
         """
@@ -95,14 +100,14 @@ class Generator:
         points.insert(0, points[-2])
         points.append(first_point)
         points.append(second_point)
-        for (x0, y0), (x1, y1), (x2, y2), (x3, y3) in zip(points, points[1:], points[2:], points[3:]):
+        for p0, p1, p2, p3 in zip(points, points[1:], points[2:], points[3:]):
             yield svg.CubicBezier(
-                x1=x1 + (x2 - x0) / 6 * self.body_tension,
-                y1=y1 + (y2 - y0) / 6 * self.body_tension,
-                x2=x2 - (x3 - x1) / 6 * self.body_tension,
-                y2=y2 - (y3 - y1) / 6 * self.body_tension,
-                x=x2,
-                y=y2,
+                x1=p1.x + (p2.x - p0.x) / 6 * self.body_tension,
+                y1=p1.y + (p2.y - p0.y) / 6 * self.body_tension,
+                x2=p2.x - (p3.x - p1.x) / 6 * self.body_tension,
+                y2=p2.y - (p3.y - p1.y) / 6 * self.body_tension,
+                x=p2.x,
+                y=p2.y,
             )
 
     def iter_eyes(self, palette: Palette, max_size: int):
