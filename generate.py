@@ -1,7 +1,7 @@
 from __future__ import annotations
 from argparse import ArgumentParser
 import math
-from random import randint, random, seed
+from random import choice, randint, random, seed
 from typing import Iterator
 from dataclasses import dataclass
 import svg
@@ -41,11 +41,11 @@ class Generator:
     # properties
 
     @property
-    def center_x(self) -> int:
+    def cx(self) -> int:
         return self.width // 2
 
     @property
-    def center_y(self) -> int:
+    def cy(self) -> int:
         return self.height // 2
 
     # methods
@@ -84,30 +84,44 @@ class Generator:
         for point_number in range(0, n_points):
             pull = random_float(.75, 1)
             angle = point_number * angle_step
-            x = self.center_x + math.cos(angle) * size * pull
-            y = self.center_x + math.sin(angle) * size * pull
+            x = self.cx + math.cos(angle) * size * pull
+            y = self.cx + math.sin(angle) * size * pull
             yield (round(x), round(y))
 
     def iter_eyes(self, palette: Palette, max_size: int):
         half_size = max_size // 2
         size = randint(half_size, max_size)
-        yield self.get_eye(palette, self.center_x - half_size, self.center_y, size)
-        yield self.get_eye(palette, self.center_x + half_size, self.center_y, size)
+        n_eyes = choice([1, 2, 2, 2, 3, 4])
+        if n_eyes == 1:
+            yield self.get_eye(palette, self.cx, self.cy, size)
+        if n_eyes == 2:
+            yield self.get_eye(palette, self.cx - half_size, self.cy, size)
+            yield self.get_eye(palette, self.cx + half_size, self.cy, size)
+        if n_eyes == 3:
+            yield self.get_eye(palette, self.cx - half_size, self.cy - half_size, size)
+            yield self.get_eye(palette, self.cx + half_size, self.cy - half_size, size)
+            yield self.get_eye(palette, self.cx, self.cy + half_size, size)
+        if n_eyes == 4:
+            yield self.get_eye(palette, self.cx - half_size, self.cy - half_size, size)
+            yield self.get_eye(palette, self.cx + half_size, self.cy - half_size, size)
+            yield self.get_eye(palette, self.cx - half_size, self.cy + half_size, size)
+            yield self.get_eye(palette, self.cx + half_size, self.cy + half_size, size)
 
     def get_eye(self, palette: Palette, x: int, y: int, size: int) -> svg.Element:
+        radius = size // 2
         return svg.G(
             transform=[svg.Translate(x, y)],
             elements=[
                 # outer ring
                 svg.Circle(
-                    cx=0, cy=0, r=size // 2,
+                    cx=0, cy=0, r=radius,
                     stroke=palette.dark,
-                    fill=palette.light,
+                    fill='none',
                     stroke_width=self.line_width,
                 ),
                 # pupil
                 svg.Circle(
-                    cx=0, cy=0, r=size // 4,
+                    cx=0, cy=0, r=radius // 2,
                     fill=palette.dark,
                     stroke_width=self.line_width,
                 ),
