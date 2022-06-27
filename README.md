@@ -22,7 +22,7 @@ python3.9 blobs.py --grid-x=4 --grid-y=3 > blobs.svg
 
 ## circles.py
 
-1. Draw a big invisible circle.
+1. Draw a big invisible circle (I draw a white circle, so it can be a background if you use a dark mode).
 1. Draw a second invisible inner circle with a bit shifted center.
 1. Draw a bunch of circles so they are between the two invisible circles and do not intersect.
 

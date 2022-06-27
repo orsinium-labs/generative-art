@@ -22,11 +22,11 @@ class Circle(NamedTuple):
     c: Point
     r: float
 
-    def render(self, color: str) -> svg.Element:
+    def render(self, stroke: str = "none", fill: str = "none") -> svg.Element:
         return svg.Circle(
             cx=self.c.x, cy=self.c.y, r=self.r,
-            stroke=color, stroke_width=1,
-            fill="none",
+            stroke=stroke, stroke_width=1,
+            fill=fill,
         )
 
     def contains(self, point: Point) -> bool:
@@ -80,6 +80,7 @@ class Generator:
 
     def iter_elements(self) -> Iterator[svg.Element]:
         assert self.inner.r < self.outer.r
+        yield self.outer.render(fill="white")
 
         circles_count = randint(self.min_circles, self.max_circles)
         min_distance = math.ceil(self.inner.min_distance(Point(self.outer.r, self.outer.r)))
@@ -89,7 +90,7 @@ class Generator:
                 circle = self.get_random_circle(min_distance, circles)
                 if circle is not None:
                     circles.append(circle)
-                    yield circle.render(self.color)
+                    yield circle.render(stroke=self.color)
                     break
 
     def get_random_circle(
