@@ -52,12 +52,10 @@ class Circle(NamedTuple):
         """
         return self.c.distance_to(point) <= self.r
 
-    def min_distance(self, other: Point | Circle) -> float:
+    def min_distance(self, other: Point) -> float:
         """Shortest distance from circle side to the point
         """
-        if isinstance(other, Point):
-            return abs(self.r - self.c.distance_to(other))
-        return self.c.distance_to(other.c) - self.r - other.r
+        return abs(self.r - self.c.distance_to(other))
 
 
 @dataclass
@@ -103,14 +101,18 @@ class Generator:
 
         circles_count = randint(self.min_circles, self.max_circles)
         min_distance = math.ceil(self.inner.min_distance(Point(self.outer.r, self.outer.r)))
+        circles = [self.inner, self.outer]
         for _ in range(circles_count):
             for _ in range(40):
-                circle = self.get_random_circle(min_distance)
+                circle = self.get_random_circle(min_distance, circles)
                 if circle is not None:
+                    circles.append(circle)
                     yield circle.render(self.palette.dark)
                     break
 
-    def get_random_circle(self, min_distance: int) -> Circle | None:
+    def get_random_circle(
+        self, min_distance: int, circles: list[Circle],
+    ) -> Circle | None:
         distance = randint(min_distance, math.floor(self.outer.r))
         angle = random() * math.pi * 2
         cx = self.outer.r + math.cos(angle) * distance
@@ -121,10 +123,9 @@ class Generator:
         # check if the circle
         if self.inner.contains(center):
             return None
-        r = min(
-            self.inner.min_distance(center),
-            self.outer.min_distance(center),
-        )
+        r = self.outer.r
+        for other in circles:
+            r = min(r, other.min_distance(center))
         if r < self.min_radius:
             return None
         return Circle(c=center, r=r)
@@ -137,8 +138,8 @@ def main() -> None:
     parser.add_argument('--max-shift', type=int, default=20)
     parser.add_argument('--min-width', type=int, default=10)
     parser.add_argument('--min-radius', type=int, default=2)
-    parser.add_argument('--min-circles', type=int, default=20)
-    parser.add_argument('--max-circles', type=int, default=50)
+    parser.add_argument('--min-circles', type=int, default=100)
+    parser.add_argument('--max-circles', type=int, default=200)
     parser.add_argument('--seed', type=int)
     args = parser.parse_args()
     if args.seed:
