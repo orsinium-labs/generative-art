@@ -8,24 +8,6 @@ from typing import Iterator, NamedTuple
 import svg
 
 
-@dataclass
-class Palette:
-    primary: str
-    dark: str
-    light: str
-
-    @classmethod
-    def new_random(cls) -> Palette:
-        hue = randint(0, 360)
-        saturation = randint(75, 100)
-        lightness = randint(75, 95)
-        return cls(
-            primary=f'hsl({hue}, {saturation}%, {lightness}%)',
-            dark=f'hsl({hue}, {saturation}%, 20%)',
-            light=f'hsl({hue}, {saturation}%, 80%)',
-        )
-
-
 class Point(NamedTuple):
     x: float
     y: float
@@ -77,8 +59,10 @@ class Generator:
         )
 
     @cached_property
-    def palette(self) -> Palette:
-        return Palette.new_random()
+    def color(self) -> str:
+        hue = randint(0, 360)
+        saturation = randint(75, 100)
+        return f'hsl({hue}, {saturation}%, 20%)'
 
     @cached_property
     def outer(self) -> Circle:
@@ -96,23 +80,22 @@ class Generator:
 
     def iter_elements(self) -> Iterator[svg.Element]:
         assert self.inner.r < self.outer.r
-        yield self.inner.render(self.palette.light)
-        yield self.outer.render(self.palette.light)
 
         circles_count = randint(self.min_circles, self.max_circles)
         min_distance = math.ceil(self.inner.min_distance(Point(self.outer.r, self.outer.r)))
-        circles = [self.inner, self.outer]
+        circles = [self.inner]
         for _ in range(circles_count):
             for _ in range(40):
                 circle = self.get_random_circle(min_distance, circles)
                 if circle is not None:
                     circles.append(circle)
-                    yield circle.render(self.palette.dark)
+                    yield circle.render(self.color)
                     break
 
     def get_random_circle(
         self, min_distance: int, circles: list[Circle],
     ) -> Circle | None:
+        # pick random coordinates for the center
         distance = randint(min_distance, math.floor(self.outer.r))
         angle = random() * math.pi * 2
         cx = self.outer.r + math.cos(angle) * distance
@@ -120,12 +103,17 @@ class Generator:
         assert cx >= 0
         assert cy >= 0
         center = Point(cx, cy)
-        # check if the circle
-        if self.inner.contains(center):
-            return None
-        r = self.outer.r
+
+        # do not draw the circle if the center is inside of another circle
+        for other in circles:
+            if other.contains(center):
+                return None
+
+        # pick radius so the circle touches the closest circle
+        r = self.outer.min_distance(center)
         for other in circles:
             r = min(r, other.min_distance(center))
+
         if r < self.min_radius:
             return None
         return Circle(c=center, r=r)
@@ -133,13 +121,13 @@ class Generator:
 
 def main() -> None:
     parser = ArgumentParser()
-    parser.add_argument('--size', type=int, default=200)
-    parser.add_argument('--min-shift', type=int, default=10)
-    parser.add_argument('--max-shift', type=int, default=20)
-    parser.add_argument('--min-width', type=int, default=10)
-    parser.add_argument('--min-radius', type=int, default=2)
-    parser.add_argument('--min-circles', type=int, default=100)
-    parser.add_argument('--max-circles', type=int, default=200)
+    parser.add_argument('--size', type=int, default=800)
+    parser.add_argument('--min-shift', type=int, default=20)
+    parser.add_argument('--max-shift', type=int, default=60)
+    parser.add_argument('--min-width', type=int, default=20)
+    parser.add_argument('--min-radius', type=int, default=4)
+    parser.add_argument('--min-circles', type=int, default=2000)
+    parser.add_argument('--max-circles', type=int, default=3000)
     parser.add_argument('--seed', type=int)
     args = parser.parse_args()
     if args.seed:
