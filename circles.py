@@ -47,10 +47,17 @@ class Circle(NamedTuple):
             fill="none",
         )
 
-    def min_distance(self, p: Point) -> float:
+    def contains(self, point: Point) -> bool:
+        """Check if the given point is inside the circle
+        """
+        return self.c.distance_to(point) <= self.r
+
+    def min_distance(self, other: Point | Circle) -> float:
         """Shortest distance from circle side to the point
         """
-        return abs(self.r - self.c.distance_to(p))
+        if isinstance(other, Point):
+            return abs(self.r - self.c.distance_to(other))
+        return self.c.distance_to(other.c) - self.r - other.r
 
 
 @dataclass
@@ -61,6 +68,7 @@ class Generator:
     min_width: int
     min_circles: int
     max_circles: int
+    min_radius: int
 
     def generate(self) -> svg.SVG:
         return svg.SVG(
@@ -98,21 +106,28 @@ class Generator:
         for _ in range(circles_count):
             for _ in range(40):
                 circle = self.get_random_circle(min_distance)
-                inner_distance = circle.c.distance_to(self.inner.c)
-                if inner_distance < self.inner.r:
-                    continue
-                yield circle.render(self.palette.dark)
-                break
+                if circle is not None:
+                    yield circle.render(self.palette.dark)
+                    break
 
-    def get_random_circle(self, min_distance: int) -> Circle:
+    def get_random_circle(self, min_distance: int) -> Circle | None:
         distance = randint(min_distance, math.floor(self.outer.r))
         angle = random() * math.pi * 2
         cx = self.outer.r + math.cos(angle) * distance
         cy = self.outer.r + math.sin(angle) * distance
         assert cx >= 0
         assert cy >= 0
-        r = 5
-        return Circle(c=Point(cx, cy), r=r)
+        center = Point(cx, cy)
+        # check if the circle
+        if self.inner.contains(center):
+            return None
+        r = min(
+            self.inner.min_distance(center),
+            self.outer.min_distance(center),
+        )
+        if r < self.min_radius:
+            return None
+        return Circle(c=center, r=r)
 
 
 def main() -> None:
@@ -121,8 +136,9 @@ def main() -> None:
     parser.add_argument('--min-shift', type=int, default=10)
     parser.add_argument('--max-shift', type=int, default=20)
     parser.add_argument('--min-width', type=int, default=10)
-    parser.add_argument('--min-circles', type=int, default=10)
-    parser.add_argument('--max-circles', type=int, default=20)
+    parser.add_argument('--min-radius', type=int, default=2)
+    parser.add_argument('--min-circles', type=int, default=20)
+    parser.add_argument('--max-circles', type=int, default=50)
     parser.add_argument('--seed', type=int)
     args = parser.parse_args()
     if args.seed:
@@ -134,6 +150,7 @@ def main() -> None:
         min_width=args.min_width,
         min_circles=args.min_circles,
         max_circles=args.max_circles,
+        min_radius=args.min_radius,
     )
     print(generator.generate())
 
