@@ -10,3 +10,11 @@ tasks:
       - blobs.svg
     cmds:
       - python3.9 blobs.py {{.CLI_ARGS}} > blobs.svg
+
+  circles:
+    sources:
+      - circles.py
+    generates:
+      - circles.svg
+    cmds:
+      - python3.9 circles.py {{.CLI_ARGS}} > circles.svg
