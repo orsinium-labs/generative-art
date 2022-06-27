@@ -1,6 +1,7 @@
 from __future__ import annotations
 from argparse import ArgumentParser
 from dataclasses import dataclass
+from functools import cached_property
 import math
 from random import randint, random, seed
 from typing import Iterator, NamedTuple
@@ -29,10 +30,6 @@ class Point(NamedTuple):
     x: float
     y: float
 
-    @property
-    def distance(self) -> float:
-        return math.sqrt(self.x ** 2 + self.y ** 2)
-
     def distance_to(self, p: Point) -> float:
         dx = abs(self.x - p.x)
         dy = abs(self.y - p.y)
@@ -40,13 +37,12 @@ class Point(NamedTuple):
 
 
 class Circle(NamedTuple):
-    x: float
-    y: float
+    c: Point
     r: float
 
     def render(self, color: str) -> svg.Element:
         return svg.Circle(
-            cx=self.x, cy=self.y, r=self.r,
+            cx=self.c.x, cy=self.c.y, r=self.r,
             stroke=color, stroke_width=1,
             fill="none",
         )
@@ -54,9 +50,7 @@ class Circle(NamedTuple):
     def min_distance(self, p: Point) -> float:
         """Shortest distance from circle side to the point
         """
-        dx = abs(self.x - p.x)
-        dy = abs(self.y - p.y)
-        return abs(self.r - Point(dx, dy).distance)
+        return abs(self.r - self.c.distance_to(p))
 
 
 @dataclass
@@ -76,36 +70,49 @@ class Generator:
             elements=list(self.iter_elements()),
         )
 
-    def iter_elements(self) -> Iterator[svg.Element]:
-        palette = Palette.new_random()
+    @cached_property
+    def palette(self) -> Palette:
+        return Palette.new_random()
+
+    @cached_property
+    def outer(self) -> Circle:
         outer_r = self.size // 2
-        outer_circle = Circle(x=outer_r, y=outer_r, r=outer_r)
-        inner_x = outer_r + randint(self.min_shift, self.max_shift)
-        inner_y = outer_r + randint(self.min_shift, self.max_shift)
-        inner_circle = Circle(
-            x=inner_x, y=inner_y,
-            r=outer_circle.min_distance(Point(inner_x, inner_y)) - self.min_width,
-        )
-        assert inner_circle.r < outer_circle.r
-        yield inner_circle.render(palette.light)
-        yield outer_circle.render(palette.light)
+        outer_center = Point(outer_r, outer_r)
+        return Circle(c=outer_center, r=outer_r)
+
+    @cached_property
+    def inner(self) -> Circle:
+        inner_x = self.outer.r + randint(self.min_shift, self.max_shift)
+        inner_y = self.outer.r + randint(self.min_shift, self.max_shift)
+        inner_center = Point(inner_x, inner_y)
+        r = self.outer.min_distance(inner_center) - self.min_width
+        return Circle(c=inner_center, r=r)
+
+    def iter_elements(self) -> Iterator[svg.Element]:
+        assert self.inner.r < self.outer.r
+        yield self.inner.render(self.palette.light)
+        yield self.outer.render(self.palette.light)
 
         circles_count = randint(self.min_circles, self.max_circles)
-        min_distance = round(inner_circle.min_distance(Point(outer_r, outer_r)))
+        min_distance = math.ceil(self.inner.min_distance(Point(self.outer.r, self.outer.r)))
         for _ in range(circles_count):
             for _ in range(40):
-                distance = randint(min_distance, outer_r)
-                angle = random() * math.pi * 2
-                cx = outer_r + math.cos(angle) * distance
-                cy = outer_r + math.sin(angle) * distance
-                assert cx >= 0
-                assert cy >= 0
-                r = 5
-                inner_distance = Point(cx, cy).distance_to(Point(inner_x, inner_y))
-                if inner_distance < inner_circle.r:
+                circle = self.get_random_circle(min_distance)
+                inner_distance = circle.c.distance_to(self.inner.c)
+                if inner_distance < self.inner.r:
                     continue
-                yield Circle(x=cx, y=cy, r=r).render(palette.dark)
+                yield circle.render(self.palette.dark)
                 break
+
+    def get_random_circle(self, min_distance: int) -> Circle:
+        distance = randint(min_distance, math.floor(self.outer.r))
+        angle = random() * math.pi * 2
+        cx = self.outer.r + math.cos(angle) * distance
+        cy = self.outer.r + math.sin(angle) * distance
+        assert cx >= 0
+        assert cy >= 0
+        r = 5
+        return Circle(c=Point(cx, cy), r=r)
 
 
 def main() -> None:
