@@ -7,7 +7,7 @@ The repository contains some of my generative art. All art in the repository is 
 ```bash
 git clone https://github.com/orsinium-labs/generative-art.git
 cd generative-art
-python3.9 -m pip isntall svg.py
+python3 -m pip isntall svg.py
 ```
 
 ## blobs.py
@@ -15,7 +15,7 @@ python3.9 -m pip isntall svg.py
 This is an improved port of the JS code described in [Generative SVG Blob Characters](https://georgefrancis.dev/writing/generative-svg-blob-characters/).
 
 ```bash
-python3.9 blobs.py --grid-x=4 --grid-y=3 > blobs.svg
+python3 blobs.py --grid-x=4 --grid-y=3 > blobs.svg
 ```
 
 ![generated art](./blobs.svg)
@@ -27,7 +27,17 @@ python3.9 blobs.py --grid-x=4 --grid-y=3 > blobs.svg
 1. Draw a bunch of circles so they are between the two invisible circles and do not intersect.
 
 ```bash
-python3.9 circles.py > circles.svg
+python3 circles.py > circles.svg
 ```
 
 ![generated art](./circles.svg)
+
+## illusion.py
+
+An implementation of the famous optical illusion [what color are these spheres](https://www.syfy.com/syfy-wire/another-brain-frying-optical-illusion-what-color-are-these-spheres). The image contains multiple circles of the same color that appear to have a different color. That's because our brain adjust the circle color based on the color of the strip that goes over it.
+
+```bash
+python3 illusion.py > illusion.svg
+```
+
+![generated art](./illusion.svg)
