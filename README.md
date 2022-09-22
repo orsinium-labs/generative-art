@@ -41,3 +41,13 @@ python3 illusion.py > illusion.svg
 ```
 
 ![generated art](./illusion.svg)
+
+## illusion_dots.py
+
+An implementation of the famous optical illusion where dots between black squares appear to change the color between black and white.
+
+```bash
+python3 illusion_dots.py > illusion_dots.svg
+```
+
+![generated art](./illusion_dots.svg)
